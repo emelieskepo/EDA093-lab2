@@ -87,13 +87,35 @@ timer_elapsed (int64_t then)
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
-timer_sleep (int64_t ticks) 
+timer_sleep (int64_t ticks)
 {
+  //nytt
+ if (ticks <= 0) return; // hantering av 0 eller negativt värde, returnerar direkt utan att blockera tråden
+  
   int64_t start = timer_ticks ();
-
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+  
+  enum intr_level old_level = intr_disable ();
+  
+  struct thread *cur = thread_current ();
+  cur-> wake_up_tick = start + ticks;
+  thread_block (); 
+  
+  intr_set_level (old_level);
+}
+  
+//nytt, frågar för varje tråd om den ska vakna upp
+static void
+check_sleeping_thread (struct thread *t, void *aux UNUSED)
+{
+  if (t->status == THREAD_BLOCKED && t->wake_up_tick > 0)
+    {
+      if (ticks >= t->wake_up_tick)
+        {
+          t->wake_up_tick = 0;
+          thread_unblock (t);
+        }
+    }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -165,13 +187,16 @@ timer_print_stats (void)
 {
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
-
+
+
 /* Timer interrupt handler. */
+// nytt, kallar på check_sleeping_thread för varje tråd
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  thread_foreach (check_sleeping_thread, NULL);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
