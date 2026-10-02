@@ -84,13 +84,12 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
-/* Sleeps for approximately TICKS timer ticks.  Interrupts must
-   be turned on. */
+/* Sleeps for approximately TICKS timer ticks.  Interrupts mustbe turned on. */
 void
 timer_sleep (int64_t ticks)
 {
   //nytt
- if (ticks <= 0) return; // hantering av 0 eller negativt värde, returnerar direkt utan att blockera tråden
+ if (ticks <= 0) return;
   
   int64_t start = timer_ticks ();
   ASSERT (intr_get_level () == INTR_ON);
@@ -104,7 +103,7 @@ timer_sleep (int64_t ticks)
   intr_set_level (old_level);
 }
   
-//nytt, frågar för varje tråd om den ska vakna upp
+/* Checks if a sleeping thread should be woken up. */
 static void
 check_sleeping_thread (struct thread *t, void *aux UNUSED)
 {
@@ -189,8 +188,7 @@ timer_print_stats (void)
 }
 
 
-/* Timer interrupt handler. */
-// nytt, kallar på check_sleeping_thread för varje tråd
+/* Timer interrupt handler. Called on each timer tick. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
