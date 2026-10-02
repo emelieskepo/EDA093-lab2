@@ -88,7 +88,6 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks)
 {
-  //nytt
  if (ticks <= 0) return;
   
   int64_t start = timer_ticks ();
